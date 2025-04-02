@@ -1,4 +1,4 @@
-# Construction-and-Evaluation-of-a-Multi-task-Text-Retrieval-and-Ranking-Model
+# Construction and Evaluation of a Multi-task Text Retrieval and Ranking Model
 
 This repository contains the code and experiments for constructing and evaluating a multi-task model that performs both text retrieval and ranking. The project leverages multi-task learning to jointly optimize for retrieving relevant documents and ranking them based on relevance, providing a unified approach to information retrieval challenges.
 
