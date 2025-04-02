@@ -2,88 +2,82 @@
 
 This repository contains the code and experiments for constructing and evaluating a multi-task model that performs both text retrieval and ranking. The project leverages multi-task learning to jointly optimize for retrieving relevant documents and ranking them based on relevance, providing a unified approach to information retrieval challenges.
 
----
+## Dataset and Data Format
 
-## Table of Contents
+- **Training Data:** `train_data.tsv`  
+  This file is given, contains records in the format:  
+  `<qid> <pid> <query> <passage> <relevancy>`
 
-- [Overview](#overview)
-- [Project Objectives](#project-objectives)
-- [Model Architecture](#model-architecture)
-- [Data and Preprocessing](#data-and-preprocessing)
-- [Experiments and Evaluation](#experiments-and-evaluation)
-- [Requirements](#requirements)
-- [Installation](#installation)
+- **Validation Data:** `validation_data.tsv`  
+  This file is given, used for model evaluation with ground truth relevance scores.
 
----
+- **Test Data:**  
+  - `test-queries.tsv`: Contains queries for final testing.  
+  - `candidate_passages_top1000.tsv`: Lists up to 1000 candidate passages per query.
 
-## Overview
+## Evaluation Metrics
 
-This project, **Multi-Task Text Retrieval and Ranking Model: Construction and Evaluation**, aims to build a robust multi-task model that simultaneously tackles text retrieval and ranking tasks. By sharing representations between these two tasks, the model is designed to improve performance on both fronts while efficiently handling real-world information retrieval challenges.
+The models are evaluated based on two key metrics:
+- **Mean Average Precision (mAP):**  
+  Measures how well the system ranks relevant passages across queries.
+- **Normalized Discounted Cumulative Gain (nDCG):**  
+  Considers both the relevance and the ranking position of retrieved passages.
 
----
+## Tasks and Methods
 
-## Project Objectives
+### Task 1: BM25 Baseline
+- **Objective:** Establish a baseline using the BM25 retrieval model.
+- **Approach:**
+  - **Preprocessing:** Convert text to lowercase, remove punctuation, and perform tokenization and lemmatization.
+  - **Inverted Index:** Construct an inverted index mapping tokens to passages.
+  - **Scoring:** Compute BM25 scores for ranking passages.
+  - **Evaluation:** Assess ranking performance using mAP and nDCG at different cutoffs (e.g., Top-20 and Top-100).
 
-- **Develop a Multi-Task Model:** Build a model that performs both text retrieval (identifying relevant documents) and ranking (ordering them by relevance).
-- **Leverage Shared Representations:** Use multi-task learning to share features between retrieval and ranking tasks.
-- **Optimize Performance:** Utilize appropriate loss functions and training techniques to maximize both retrieval accuracy and ranking quality.
-- **Comprehensive Evaluation:** Assess the model using standard metrics such as Precision, Recall, Mean Average Precision (MAP) for retrieval, and Normalized Discounted Cumulative Gain (NDCG) for ranking.
-- **Compare Against Baselines:** Benchmark the multi-task model against traditional single-task approaches.
+### Task 2: Logistic Regression (LR)
+- **Objective:** Implement a logistic regression model for re-ranking passages.
+- **Approach:**
+  - **Data Subsampling:** Retain all positive examples and sample 5% of negative examples.
+  - **Embedding Preparation:** Train a Word2Vec model on a unified corpus of queries and passages, generating 100-dimensional embeddings.
+  - **Feature Construction:** Concatenate the averaged query and passage embeddings to form a 200-dimensional feature vector.
+  - **Training:** Utilize gradient descent with binary cross-entropy loss.
+  - **Evaluation:** Rank passages and compute mAP and nDCG.
 
----
+### Task 3: LambdaMART (LM)
+- **Objective:** Improve ranking performance using a learning-to-rank approach.
+- **Approach:**
+  - **Feature Engineering:** Create a 3-dimensional feature vector for each query–passage pair consisting of:
+    - The dot product of query and passage embeddings.
+    - The Euclidean norm of the query embedding.
+    - The Euclidean norm of the passage embedding.
+  - **Model Training:** Use XGBoost with the `rank:ndcg` objective and perform 5-fold cross-validation for hyperparameter tuning.
+  - **Evaluation:** Measure the final model performance using mAP and nDCG.
 
-## Model Architecture
+### Task 4: Neural Network (NN)
+- **Objective:** Leverage a neural network to capture non-linear interactions for re-ranking.
+- **Approach:**
+  - **Architecture:** Design a feed-forward neural network with:
+    - Three hidden layers (256, 128, 64 units) and a dropout rate of 0.5.
+  - **Training:**  
+    - Utilize the Adam optimizer with a learning rate of 0.0001 and weight decay of 4e-4.
+    - Train for 100 epochs using mini-batch gradient descent (batch size: 512).
+    - Apply BCEWithLogitsLoss for stable convergence.
+  - **Evaluation:** Generate relevance scores, rank passages, and calculate mAP and nDCG.
 
-The model consists of the following components:
+## Final Submission
 
-- **Embedding Layer:** Converts raw text into vector representations.
-- **Shared Encoder:** A deep neural network (e.g., transformer-based encoder) that learns contextual representations of the input text.
-- **Task-Specific Layers:**
-  - **Retrieval Head:** Outputs a binary (or probabilistic) score indicating document relevance.
-  - **Ranking Head:** Outputs scores for ordering the documents, optimized via ranking-specific loss functions.
-- **Multi-Task Loss:** A combined loss function that jointly optimizes the retrieval and ranking objectives.
+The project produces three output files for the test queries, each corresponding to one of the re-ranking models:
+- **`LR.txt`** – Results from the Logistic Regression model.
+- **`LM.txt`** – Results from the LambdaMART model.
+- **`NN.txt`** – Results from the Neural Network model.
 
----
+Each file contains up to 100 ranked passages per query, adhering to the required format.
 
-## Data and Preprocessing
+## Conclusion
 
-- **Data Sources:** The project uses text datasets appropriate for retrieval and ranking tasks. (Please update with specific dataset names or links if available.)
-- **Preprocessing Steps:**
-  - Tokenization and text normalization
-  - Removal of stop words (if applicable)
-  - Conversion of text to numerical representations (using word embeddings or contextual embeddings)
-- **Data Splitting:** Data is divided into training, validation, and test sets for robust evaluation.
+This project provides a comprehensive exploration of passage retrieval using a spectrum of techniques:
+- A **BM25 baseline** for initial relevance scoring.
+- **Logistic Regression** for leveraging averaged word embeddings.
+- **LambdaMART** for advanced ranking with a compact 3D feature set.
+- A **Neural Network** to model complex non-linear interactions.
 
----
-
-## Experiments and Evaluation
-
-- **Training Process:** The model is trained using standard optimization techniques (e.g., SGD or Adam) with careful hyperparameter tuning.
-- **Evaluation Metrics:**
-  - **Retrieval:** Precision, Recall, Mean Average Precision (MAP)
-  - **Ranking:** Normalized Discounted Cumulative Gain (NDCG), Spearman’s Rank Correlation
-- **Experiments:** Multiple configurations and hyperparameter settings are explored to determine the best performance on both tasks.
-- **Notebook:** Detailed experiments, visualizations, and analysis are provided in the Jupyter Notebook `coursework2.ipynb`.
-
----
-
-## Requirements
-
-- Python 3.x
-- PyTorch
-- Transformers (if using transformer-based encoders)
-- NumPy
-- Pandas
-- scikit-learn
-- Additional libraries for text processing (e.g., nltk, spacy)
-
----
-
-## Installation
-
-Clone the repository and install the required packages:
-
-```bash
-git clone https://github.com/yourusername/Multi-Task-Text-Retrieval-Ranking.git
-cd Multi-Task-Text-Retrieval-Ranking
-pip install -r requirements.txt
+For detailed methodology, experimental setups, and analysis, please refer to the full project report (`IRDM.pdf`) and the implementation in the Jupyter Notebook (`coursework2.ipynb`).
